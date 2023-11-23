@@ -32,7 +32,7 @@ function CountryList({ cities, isLoading }) {
         <ul className={styles.countryList}>
             {countries &&
                 countries.map((country) => (
-                    <CountryItem key={country.id} country={country} />
+                    <CountryItem key={country.name} country={country} />
                 ))}
         </ul>
     );
