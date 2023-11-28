@@ -12,6 +12,7 @@ CitiesProvider.propTypes = {
 function CitiesProvider({ children }) {
     const [cities, setCities] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [currentCity, setCurrentCity] = useState({});
 
     useEffect(() => {
         async function fetchCities() {
@@ -34,8 +35,29 @@ function CitiesProvider({ children }) {
 
         fetchCities();
     }, []);
+
+    async function getCity(id) {
+        try {
+            setIsLoading(true);
+            const res = await fetch(`${API_URL}/cities/${id}`);
+
+            if (!res.ok) {
+                throw new Error("Failed to fetch cities");
+            }
+
+            const data = await res.json();
+            setCurrentCity(data);
+        } catch (error) {
+            console.error(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
     return (
-        <CitiesContext.Provider value={{ cities, isLoading }}>
+        <CitiesContext.Provider
+            value={{ cities, isLoading, currentCity, getCity }}
+        >
             {children}
         </CitiesContext.Provider>
     );
