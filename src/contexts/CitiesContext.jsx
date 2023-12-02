@@ -1,7 +1,53 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useReducer } from "react";
 import PropTypes from "prop-types";
 
 const CitiesContext = createContext();
+
+const initialState = {
+    cities: [],
+    isLoading: false,
+    currentCity: {},
+    error: "",
+};
+
+function reducer(state, action) {
+    switch (action.type) {
+        case "loading":
+            return { ...state, isLoading: true };
+
+        case "cities/loaded":
+            return { ...state, isLoading: false, cities: action.payload };
+
+        case "city/loaded":
+            return { ...state, isLoading: false, currentCity: action.payload };
+
+        case "city/created":
+            return {
+                ...state,
+                isLoading: false,
+                // adding new city to local state manually because we are not re-fetching the cities yet
+                cities: [...state.cities, action.payload],
+                currentCity: action.payload,
+            };
+
+        case "city/deleted":
+            return {
+                ...state,
+                isLoading: false,
+                // removing city from local state manually because we are not re-fetching the cities yet
+                cities: state.cities.filter(
+                    (city) => city.id !== action.payload
+                ),
+                currentCity: {},
+            };
+
+        case "rejected":
+            return { ...state, isLoading: false, error: action.payload };
+
+        default:
+            throw new Error("Unknown action type");
+    }
+}
 
 const API_URL = "http://localhost:9000";
 
@@ -10,14 +56,13 @@ CitiesProvider.propTypes = {
 };
 
 function CitiesProvider({ children }) {
-    const [cities, setCities] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [currentCity, setCurrentCity] = useState({});
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const { cities, isLoading, currentCity, error } = state;
 
     useEffect(() => {
         async function fetchCities() {
             try {
-                setIsLoading(true);
+                dispatch({ type: "loading" });
                 const res = await fetch(`${API_URL}/cities`);
 
                 if (!res.ok) {
@@ -25,11 +70,9 @@ function CitiesProvider({ children }) {
                 }
 
                 const data = await res.json();
-                setCities(data);
+                dispatch({ type: "cities/loaded", payload: data });
             } catch (error) {
-                console.error(error.message);
-            } finally {
-                setIsLoading(false);
+                dispatch({ type: "rejected", payload: error.message });
             }
         }
 
@@ -37,26 +80,29 @@ function CitiesProvider({ children }) {
     }, []);
 
     async function getCity(id) {
+        // avoid fetching current city
+        if (Number(id) === currentCity.id) {
+            return;
+        }
+
         try {
-            setIsLoading(true);
+            dispatch({ type: "loading" });
             const res = await fetch(`${API_URL}/cities/${id}`);
 
             if (!res.ok) {
-                throw new Error("Failed to fetch cities");
+                throw new Error("Failed to fetch city");
             }
 
             const data = await res.json();
-            setCurrentCity(data);
+            dispatch({ type: "city/loaded", payload: data });
         } catch (error) {
-            console.error(error.message);
-        } finally {
-            setIsLoading(false);
+            dispatch({ type: "rejected", payload: error.message });
         }
     }
 
     async function createCity(newCity) {
         try {
-            setIsLoading(true);
+            dispatch({ type: "loading" });
 
             const body = JSON.stringify(newCity);
             const res = await fetch(`${API_URL}/cities`, {
@@ -71,18 +117,15 @@ function CitiesProvider({ children }) {
 
             const data = await res.json();
 
-            // adding new city to local state manually because we are not re-fetching the cities yet
-            setCities((cities) => [...cities, data]);
+            dispatch({ type: "city/created", payload: data });
         } catch (error) {
-            console.error(error.message);
-        } finally {
-            setIsLoading(false);
+            dispatch({ type: "rejected", payload: error.message });
         }
     }
 
     async function removeCity(id) {
         try {
-            setIsLoading(true);
+            dispatch({ type: "loading" });
 
             const res = await fetch(`${API_URL}/cities/${id}`, {
                 method: "DELETE",
@@ -92,20 +135,18 @@ function CitiesProvider({ children }) {
                 throw new Error("Failed to remove city");
             }
 
-            // removing city from local state manually because we are not re-fetching the cities yet
-            setCities((cities) => cities.filter((city) => city.id !== id));
+            dispatch({ type: "city/deleted", payload: id });
         } catch (error) {
-            console.error(error.message);
-        } finally {
-            setIsLoading(false);
+            dispatch({ type: "rejected", payload: error.message });
         }
     }
 
     return (
         <CitiesContext.Provider
             value={{
-                cities,
                 isLoading,
+                error,
+                cities,
                 currentCity,
                 getCity,
                 createCity,
