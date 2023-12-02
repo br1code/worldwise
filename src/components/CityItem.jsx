@@ -16,7 +16,7 @@ const formatDate = (date) => {
 };
 
 function CityItem({ city }) {
-    const { currentCity } = useCities();
+    const { currentCity, removeCity } = useCities();
     const { id, cityName, emoji, date, position } = city;
     const linkUrl = `${id}?lat=${position.lat}&lng=${position.lng}`;
 
@@ -25,13 +25,20 @@ function CityItem({ city }) {
         isCurrenctCitySelected ? styles["cityItem--active"] : ""
     }`;
 
+    async function handleRemoveCity(event) {
+        event.preventDefault();
+        removeCity(id);
+    }
+
     return (
         <li>
             <Link to={linkUrl} className={className}>
                 <span className={styles.emoji}>{emoji}</span>
                 <h3 className={styles.name}>{cityName}</h3>
                 <time className={styles.date}>({formatDate(date)})</time>
-                <button className={styles.deleteBtn}>&times;</button>
+                <button className={styles.deleteBtn} onClick={handleRemoveCity}>
+                    &times;
+                </button>
             </Link>
         </li>
     );

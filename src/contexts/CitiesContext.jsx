@@ -80,9 +80,37 @@ function CitiesProvider({ children }) {
         }
     }
 
+    async function removeCity(id) {
+        try {
+            setIsLoading(true);
+
+            const res = await fetch(`${API_URL}/cities/${id}`, {
+                method: "DELETE",
+            });
+
+            if (!res.ok) {
+                throw new Error("Failed to remove city");
+            }
+
+            // removing city from local state manually because we are not re-fetching the cities yet
+            setCities((cities) => cities.filter((city) => city.id !== id));
+        } catch (error) {
+            console.error(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
     return (
         <CitiesContext.Provider
-            value={{ cities, isLoading, currentCity, getCity, createCity }}
+            value={{
+                cities,
+                isLoading,
+                currentCity,
+                getCity,
+                createCity,
+                removeCity,
+            }}
         >
             {children}
         </CitiesContext.Provider>
