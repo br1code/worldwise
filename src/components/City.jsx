@@ -22,7 +22,7 @@ function City() {
         function () {
             getCity(id);
         },
-        [id] // TODO: fix missing dependency from getCity
+        [id, getCity]
     );
 
     const { cityName, emoji, date, notes } = currentCity;
